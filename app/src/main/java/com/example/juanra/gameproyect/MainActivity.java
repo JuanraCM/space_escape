@@ -56,14 +56,32 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         highScoreLabel = findViewById(R.id.highScoreLabel);
 
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-
-        initializeElements();
-        setGameBounds();
     }
 
-    private void initializeElements() {
+    private void registerListener() {
+        sensorManager.registerListener(this, sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_GAME);
+    }
+
+    public void startGame(View view) {
+        registerListener();
+        initializeGameElements();
+        setGameBounds();
+
+        // Cambiamos la visibilidad de los elementos
+        hasStarted = true;
+        gameLayout.setVisibility(View.INVISIBLE);
+        player.setImageVisibility(View.VISIBLE);
+
+        // Mase
+        timeCount = 0;
+        score = 0;
+        scoreBoard.setText("Score: 0");
+    }
+
+    private void initializeGameElements() {
         // Inicializa el objeto player
         ImageView playerImage = findViewById(R.id.player);
+        playerImage.getHeight();
         Drawable playerLeft = getResources().getDrawable(R.drawable.balloon_left);
         Drawable playerRight = getResources().getDrawable(R.drawable.balloon_right);
 
@@ -81,24 +99,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             playerX = player.getObjectX();
             playerY = player.getObjectY();
         }
-    }
-
-    private void registerListener() {
-        sensorManager.registerListener(this, sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_GAME);
-    }
-
-    public void startGame(View view) {
-        registerListener();
-
-        hasStarted = true;
-        gameLayout.setVisibility(View.INVISIBLE);
-
-        // Hacemos visibles los elementos
-        player.setImageVisibility(View.VISIBLE);
-
-        timeCount = 0;
-        score = 0;
-        scoreBoard.setText("Score: 0");
     }
 
     public void quitGame(View view) {
