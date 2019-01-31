@@ -28,27 +28,19 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private LinearLayout gameLayout;
 
     // Elementos del juego
-    private ImageView player;
-    private Drawable playerRight, playerLeft;
+    private PlayerObject player;
+    private GameObject obstacleBlue; // Implementar
 
-    // Tamaño de player
+    // Tamaño y posiciones auxiliares de los elementos
     private int playerSize;
-
-    // Posicion de los elementos
     private float playerX, playerY;
 
     // Scoreboard
     private TextView scoreBoard, highScoreLabel;
     private int score, highScore, timeCount;
 
-    // Elementos de clase
-    private Timer timer;
-    private Handler handler = new Handler();
-
     // Variables de estado de los objetos
     private boolean hasStarted = false;
-    private boolean doingSomething = false;
-    private boolean tiltRight = false;
 
     // Sensor acelerometro
     private SensorManager sensorManager;
@@ -59,82 +51,102 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         gameFrame = findViewById(R.id.gameFrame);
         gameLayout = findViewById(R.id.gameLayout);
-        player = findViewById(R.id.player);
+
         scoreBoard = findViewById(R.id.scoreboard);
         highScoreLabel = findViewById(R.id.highScoreLabel);
 
-        playerLeft = getResources().getDrawable(R.drawable.balloon_left);
-        playerRight = getResources().getDrawable(R.drawable.balloon_right);
-
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+
+        initializeElements();
+        setGameBounds();
     }
 
-    public void startGame(View view) {
-        hasStarted = true;
-        gameLayout.setVisibility(View.INVISIBLE);
+    private void initializeElements() {
+        // Inicializa el objeto player
+        ImageView playerImage = findViewById(R.id.player);
+        Drawable playerLeft = getResources().getDrawable(R.drawable.balloon_left);
+        Drawable playerRight = getResources().getDrawable(R.drawable.balloon_right);
 
-        // Inicializa las variables que contienen el tamaño del frame si no lo estaban
+        player = new PlayerObject(playerImage, playerLeft, playerRight);
+    }
+
+    private void setGameBounds() {
+        // Inicializa las variables que contienen el tamaño del frame, el jugador y los obstaculos
         if (frameHeight == 0) {
             frameHeight = gameFrame.getHeight();
             frameWidth = gameFrame.getWidth();
             initialframeWidth = frameWidth;
 
-            playerSize = player.getHeight();
-            playerX = player.getX();
-            playerY = player.getY();
+            playerSize = player.getPlayerSize();
+            playerX = player.getObjectX();
+            playerY = player.getObjectY();
         }
+    }
 
-        // Seteamos las posiciones de los elementos (3000.0f es fuera del frame)
-        player.setX(0.0f);
+    private void registerListener() {
+        sensorManager.registerListener(this, sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_GAME);
+    }
+
+    public void startGame(View view) {
+        registerListener();
+
+        hasStarted = true;
+        gameLayout.setVisibility(View.INVISIBLE);
 
         // Hacemos visibles los elementos
-        player.setVisibility(View.VISIBLE);
+        player.setImageVisibility(View.VISIBLE);
 
         timeCount = 0;
         score = 0;
         scoreBoard.setText("Score: 0");
-
-        timer = new Timer();
-        timer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                if (hasStarted) {
-                    handler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            //changePos();
-                        }
-                    });
-                }
-            }
-        }, 0, 20);
     }
 
-    /*public void changePos() {  Metodo control por touchEvent
+    public void quitGame(View view) {
+
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+            if (event.values[0] < 0) {
+                updatePos(true);
+            } else {
+                updatePos(false);
+            }
+        }
+    }
+
+    private void updatePos(boolean assertMoving) {
         // Mueve el jugador
-        if (doingSomething) {
+        if (assertMoving) {
             playerX += 14;
-            player.setImageDrawable(playerRight);
+            player.changeDrawable(PlayerDirection.RIGHT);
         } else {
             playerX -= 14;
-            player.setImageDrawable(playerLeft);
+            player.changeDrawable(PlayerDirection.LEFT);
         }
 
         // Controlamos que el jugados este en algun extremo
         if (playerX < 0) {
             playerX = 0;
-            player.setImageDrawable(playerRight);
+            player.changeDrawable(PlayerDirection.RIGHT);
         }
 
         if (frameWidth - playerSize < playerX) {
             playerX = (frameWidth - playerSize);
-            player.setImageDrawable(playerLeft);
+            player.changeDrawable(PlayerDirection.LEFT);
         }
 
         // Actualizamos la posicion de player
-        player.setX(playerX);
-    }*/
-   /* @Override
+        player.setImageX(playerX);
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+    }
+
+    /* @Override
     public boolean onTouchEvent(MotionEvent event) {
         if (hasStarted) {
             if (event.getAction() == MotionEvent.ACTION_DOWN) {
@@ -145,57 +157,4 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
         return true;
     }*/
-
-    public void quitGame(View view) {
-
-    }
-
-    @Override
-    public void onSensorChanged(SensorEvent event) {
-        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
-            if (event.values[0] < 0) {
-                System.out.println("You are moving to the right");
-                updatePos(true);
-            } else {
-                System.out.println("You are moving to the left");
-                updatePos(false);
-            }
-        }
-    }
-
-    private void updatePos(boolean b) {
-        // Mueve el jugador
-        if (b) {
-            playerX += 14;
-            player.setImageDrawable(playerRight);
-        } else {
-            playerX -= 14;
-            player.setImageDrawable(playerLeft);
-        }
-
-        // Controlamos que el jugados este en algun extremo
-        if (playerX < 0) {
-            playerX = 0;
-            player.setImageDrawable(playerRight);
-        }
-
-        if (frameWidth - playerSize < playerX) {
-            playerX = (frameWidth - playerSize);
-            player.setImageDrawable(playerLeft);
-        }
-
-        // Actualizamos la posicion de player
-        player.setX(playerX);
-    }
-
-    @Override
-    public void onAccuracyChanged(Sensor sensor, int accuracy) {
-
-    }
-
-    @Override
-    public void onStart() {
-        super.onStart();
-        sensorManager.registerListener(this, sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_GAME);
-    }
 }
