@@ -7,7 +7,7 @@ public class ObstacleObject extends GameObject {
     private float objectY;
 
     public ObstacleObject(ImageView image, float objectX, float objectY) {
-        super(image, objectX);
+        super(image, objectX, objectY);
         this.objectY = objectY;
     }
 
