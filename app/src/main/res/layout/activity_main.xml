@@ -32,6 +32,24 @@
             android:layout_gravity="bottom"
             android:layout_marginBottom="5dp"
             android:visibility="invisible"/>
+        
+        <ImageView android:id="@+id/blueMarble"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/blue"
+            android:visibility="invisible"/>
+
+        <ImageView android:id="@+id/redMarble"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/red"
+            android:visibility="invisible"/>
+
+        <ImageView android:id="@+id/blackMarble"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/black"
+            android:visibility="invisible"/>
 
         
         <LinearLayout android:id="@+id/gameLayout"

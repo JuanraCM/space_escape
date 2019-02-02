@@ -49,8 +49,20 @@ public class GameObject {
         this.objectY = objectY;
     }
 
+    public int getImageWidth() {
+        return image.getWidth();
+    }
+
+    public int getImageHeight() {
+        return image.getHeight();
+    }
+
     public void setImageX(float x) {
         image.setX(x);
+    }
+
+    public void setImageY(float y) {
+        image.setY(y);
     }
 
     public void setImageVisibility(int visibility) {

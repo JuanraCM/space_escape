@@ -6,6 +6,7 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.opengl.Visibility;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -17,6 +18,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import java.lang.annotation.Native;
+import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -29,11 +31,16 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     // Elementos del juego
     private PlayerObject player;
-    private GameObject obstacleBlue; // Implementar
+    private GameObject blueMarble;
+    private GameObject redMarble;
+    private GameObject blackMarble;
 
     // Tamaño y posiciones auxiliares de los elementos
     private int playerSize;
     private float playerX, playerY;
+    private float blueX, blueY;
+    private float redX, redY;
+    private float blackX, blackY;
 
     // Scoreboard
     private TextView scoreBoard, highScoreLabel;
@@ -44,6 +51,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     // Sensor acelerometro
     private SensorManager sensorManager;
+
+    // Variable random para la posicion X de las bolas
+    private Random rand;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -63,16 +74,20 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     public void startGame(View view) {
+        hasStarted = true;
+
         registerListener();
         initializeGameElements();
         setGameBounds();
 
         // Cambiamos la visibilidad de los elementos
-        hasStarted = true;
         gameLayout.setVisibility(View.INVISIBLE);
         player.setImageVisibility(View.VISIBLE);
+        blueMarble.setImageVisibility(View.VISIBLE);
+        redMarble.setImageVisibility(View.VISIBLE);
+        blackMarble.setImageVisibility(View.VISIBLE);
 
-        // Mase
+        // Variables para sumar el score
         timeCount = 0;
         score = 0;
         scoreBoard.setText("Score: 0");
@@ -86,6 +101,17 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         Drawable playerRight = getResources().getDrawable(R.drawable.balloon_right);
 
         player = new PlayerObject(playerImage, playerLeft, playerRight);
+
+        // Inicializa los elementos que van cayendo
+        rand = new Random();
+
+        ImageView blueImage = findViewById(R.id.blueMarble);
+        ImageView redImage = findViewById(R.id.redMarble);
+        ImageView blackImage = findViewById(R.id.blackMarble);
+
+        blueMarble = new ObstacleObject(blueImage);
+        redMarble = new ObstacleObject(redImage);
+        blackMarble = new ObstacleObject(blackImage);
     }
 
     private void setGameBounds() {
@@ -95,9 +121,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             frameWidth = gameFrame.getWidth();
             initialframeWidth = frameWidth;
 
+            // Obtenemos la posicion del jugador
             playerSize = player.getPlayerSize();
             playerX = player.getObjectX();
             playerY = player.getObjectY();
+
+            // Obtenemos la posicion de los demas objetos
+            blueX  = blueMarble.getObjectX();
+            blueY  = blueMarble.getObjectY();
+            redX   = redMarble.getObjectX();
+            redY   = redMarble.getObjectY();
+            blackX = blackMarble.getObjectX();
+            blackY = blackMarble.getObjectY();
         }
     }
 
@@ -116,13 +151,34 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
-    private void updatePos(boolean assertMoving) {
+    private void updatePos(boolean assertMovingRight) {
+        // Bola azul
+        blueY += 10; // Cantidad de pixeles que se movera
+
+        // Calculamos el centro real de las imagenes, dado que los parametros X e Y son con respecto a la esquina izquierda superior
+        float blueCenterX = blueX + blueMarble.getImageWidth() / 2;
+        float blueCenterY = blueY + blueMarble.getImageHeight() / 2;
+
+        // Si hay colision situamos la bola 100 pixeles por fuera de la alturadel frame
+        if (hasCollided(blueCenterX, blueCenterY)) {
+            blueY = frameHeight + 100;
+        }
+
+        // Si la y se encuentra por debajo del frame la volvemos a poner arriba
+        if (blueY > frameHeight) {
+            blueY = -100;
+            blueX = (float) Math.floor(rand.nextDouble() * (frameWidth - blueMarble.getImageWidth()));
+        }
+
+        blueMarble.setImageX(blueX);
+        blueMarble.setImageY(blueY);
+
         // Mueve el jugador
-        if (assertMoving) {
-            playerX += 14;
+        if (assertMovingRight) {
+            playerX += 10;
             player.changeDrawable(PlayerDirection.RIGHT);
         } else {
-            playerX -= 14;
+            playerX -= 10;
             player.changeDrawable(PlayerDirection.LEFT);
         }
 
@@ -139,6 +195,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         // Actualizamos la posicion de player
         player.setImageX(playerX);
+    }
+
+    private boolean hasCollided(float x, float y) {
+        // Comprobamos la colision por ambos lados y por arriba
+        return (playerX <= x && x <= playerX + playerSize &&
+                playerY <= y && y <= frameHeight);
     }
 
     @Override

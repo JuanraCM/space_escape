@@ -4,18 +4,9 @@ import android.widget.ImageView;
 
 public class ObstacleObject extends GameObject {
 
-    private float objectY;
 
-    public ObstacleObject(ImageView image, float objectX, float objectY) {
-        super(image, objectX, objectY);
-        this.objectY = objectY;
+    public ObstacleObject(ImageView image) {
+        super(image, 3000.0f, image.getY());
     }
 
-    public float getObjectY() {
-        return objectY;
-    }
-
-    public void setObjectY(float objectY) {
-        this.objectY = objectY;
-    }
 }
