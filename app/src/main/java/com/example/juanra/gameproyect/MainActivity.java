@@ -31,9 +31,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     // Elementos del juego
     private PlayerObject player;
-    private GameObject blueMarble;
-    private GameObject redMarble;
-    private GameObject blackMarble;
+    private ObstacleObject blueMarble;
+    private SpecialObstacleObject redMarble;
+    private SpecialObstacleObject blackMarble;
+    private ScoreBoard scoreBoard;
 
     // Tamaño y posiciones auxiliares de los elementos
     private int playerSize;
@@ -42,18 +43,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private float redX, redY;
     private float blackX, blackY;
 
-    // Scoreboard
-    private TextView scoreBoard, highScoreLabel;
-    private int score, highScore, timeCount;
-
     // Variables de estado de los objetos
     private boolean hasStarted = false;
+    private boolean blackMarbleAction = false;
 
     // Sensor acelerometro
     private SensorManager sensorManager;
 
     // Variable random para la posicion X de las bolas
     private Random rand;
+
+    // TimeCount
+    int timeCount = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,9 +63,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         gameFrame = findViewById(R.id.gameFrame);
         gameLayout = findViewById(R.id.gameLayout);
-
-        scoreBoard = findViewById(R.id.scoreboard);
-        highScoreLabel = findViewById(R.id.highScoreLabel);
 
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
     }
@@ -86,11 +84,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         blueMarble.setImageVisibility(View.VISIBLE);
         redMarble.setImageVisibility(View.VISIBLE);
         blackMarble.setImageVisibility(View.VISIBLE);
-
-        // Variables para sumar el score
-        timeCount = 0;
-        score = 0;
-        scoreBoard.setText("Score: 0");
     }
 
     private void initializeGameElements() {
@@ -110,8 +103,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         ImageView blackImage = findViewById(R.id.blackMarble);
 
         blueMarble = new ObstacleObject(blueImage);
-        redMarble = new ObstacleObject(redImage);
-        blackMarble = new ObstacleObject(blackImage);
+        redMarble = new SpecialObstacleObject(redImage);
+        blackMarble = new SpecialObstacleObject(blackImage);
+
+        // Inicializa el scoreboard
+        TextView score = findViewById(R.id.scoreboard);
+        TextView hiScoreLabel = findViewById(R.id.highScoreLabel);
+
+        scoreBoard = new ScoreBoard(score, hiScoreLabel);
     }
 
     private void setGameBounds() {
@@ -144,24 +143,27 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     public void onSensorChanged(SensorEvent event) {
         if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
             if (event.values[0] < 0) {
-                updatePos(true);
+                updatePos(true); // Right
             } else {
-                updatePos(false);
+                updatePos(false); // Left
             }
         }
     }
 
     private void updatePos(boolean assertMovingRight) {
-        // Bola azul
-        blueY += 10; // Cantidad de pixeles que se movera
+        timeCount += 20;
+
+        // Movimiento de la bola azul
+        blueY += 10; // Unidades que se mueve en el eje vertical
 
         // Calculamos el centro real de las imagenes, dado que los parametros X e Y son con respecto a la esquina izquierda superior
         float blueCenterX = blueX + blueMarble.getImageWidth() / 2;
         float blueCenterY = blueY + blueMarble.getImageHeight() / 2;
 
-        // Si hay colision situamos la bola 100 pixeles por fuera de la alturadel frame
+        // Si hay colision situamos la bola 100 pixeles por fuera de la altura del frame
         if (hasCollided(blueCenterX, blueCenterY)) {
             blueY = frameHeight + 100;
+            scoreBoard.increment(10);
         }
 
         // Si la y se encuentra por debajo del frame la volvemos a poner arriba
@@ -173,7 +175,31 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         blueMarble.setImageX(blueX);
         blueMarble.setImageY(blueY);
 
-        // Mueve el jugador
+        // Movimiento de la bola negra
+        if (!blackMarbleAction && timeCount % 10000 == 0) {
+            blackMarbleAction = true;
+            blackY = -20;
+            blackX = (float) Math.floor(rand.nextDouble() * (frameWidth - blackMarble.getImageWidth()));
+        }
+
+        if (blackMarbleAction) {
+            blackY += 20;
+
+            float blackCenterX = blackX + blackMarble.getImageWidth() / 2;
+            float blackCenterY = blackY + blackMarble.getImageHeight() / 2;
+
+            if (hasCollided(blackCenterX, blackCenterY)) {
+                blackY = frameHeight + 30;
+                scoreBoard.increment(30);
+            }
+        }
+
+        if (blackY > frameHeight) blackMarbleAction = false;
+
+        blackMarble.setImageX(blackX);
+        blackMarble.setImageY(blackY);
+
+        // Movimiento del jugador
         if (assertMovingRight) {
             playerX += 10;
             player.changeDrawable(PlayerDirection.RIGHT);

@@ -9,7 +9,7 @@ import android.widget.ImageView;
 *
 * */
 
-public class GameObject {
+public abstract class GameObject {
 
     private ImageView image;
     private float objectX;
@@ -37,16 +37,8 @@ public class GameObject {
         return objectX;
     }
 
-    public void setObjectX(float objectX) {
-        this.objectX = objectX;
-    }
-
     public float getObjectY() {
         return objectY;
-    }
-
-    public void setObjectY(float objectY) {
-        this.objectY = objectY;
     }
 
     public int getImageWidth() {
