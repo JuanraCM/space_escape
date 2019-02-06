@@ -6,8 +6,8 @@ public class SpecialObstacleObject extends ObstacleObject {
 
     private boolean active;
 
-    public SpecialObstacleObject(ImageView image) {
-        super(image);
+    public SpecialObstacleObject(ImageView image, int increment, int movementPoints) {
+        super(image, increment, movementPoints);
         active = false;
     }
 
