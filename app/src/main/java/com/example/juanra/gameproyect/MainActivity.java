@@ -12,6 +12,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -45,7 +46,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     // Variables de estado de los objetos
     private boolean hasStarted = false;
-    private boolean blackMarbleAction = false;
+    private boolean blackMarbleAction, redMarbleAction = false;
     private boolean assertMovingRight = false;
 
     // Sensor acelerometro
@@ -57,6 +58,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     // TimeCount
     int timeCount = 0;
 
+    // Timer para el metodo updatePos
+    private Timer timer;
+    private Handler handler = new Handler();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -66,6 +71,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         gameLayout = findViewById(R.id.gameLayout);
 
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+
+        timer = new Timer();
     }
 
     private void registerListener() {
@@ -86,14 +93,19 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         redMarble.setImageVisibility(View.VISIBLE);
         blackMarble.setImageVisibility(View.VISIBLE);
 
-        // Variable timer que ejecuta de forma asincrona el metodo updatePos
-        /*Timer timer = new Timer();
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
-                updatePos(assertMovingRight);
+                if (hasStarted) {
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            updatePos(assertMovingRight);
+                        }
+                    });
+                }
             }
-        }, 20);*/
+        },0,  20);
     }
 
     private void initializeGameElements() {
@@ -113,8 +125,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         ImageView blackImage = findViewById(R.id.blackMarble);
 
         blueMarble = new ObstacleObject(blueImage, 10, 10);
-        redMarble = new SpecialObstacleObject(redImage, 30, 20);
-        blackMarble = new SpecialObstacleObject(blackImage, -10, 10);
+        redMarble = new SpecialObstacleObject(redImage, 30, 20, 30);
+        blackMarble = new SpecialObstacleObject(blackImage, -10, 10, -60);
 
         // Inicializa el scoreboard
         TextView score = findViewById(R.id.scoreboard);
@@ -157,7 +169,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             } else {
                 assertMovingRight = false;
             }
-            updatePos(assertMovingRight);
+            //updatePos(assertMovingRight);
         }
     }
 
@@ -195,6 +207,23 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         blackMarble.setImageX(blackX);
         blackMarble.setImageY(blackY);
 
+        // Movimiento de la bola roja
+        if (!redMarbleAction && timeCount % 15000 == 0) {
+            redMarbleAction = true;
+            redY = -20;
+            redX = (float) Math.floor(rand.nextDouble() * (frameWidth - redMarble.getImageWidth()));
+        }
+
+        if (redMarbleAction) {
+            redY += 25;
+            redY = updateMarblePos(redMarble, redX, redY);
+        }
+
+        if (redY > frameHeight) redMarbleAction = false;
+
+        redMarble.setImageX(redX);
+        redMarble.setImageY(redY);
+
         // Movimiento del jugador
         updatePlayerPos();
     }
@@ -206,6 +235,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         if (hasCollided(marbleCenterX, marbleCenterY)) {
             marbleY = frameHeight + 100;
             scoreBoard.increment(marble.getIncrement());
+
+            // Cambia el ancho del frame si es una bola especial
+            if (marble instanceof SpecialObstacleObject) {
+                frameWidth += ((SpecialObstacleObject) marble).getWallWidthChanged();
+                ViewGroup.LayoutParams modified = gameFrame.getLayoutParams();
+                modified.width = frameWidth;
+
+                gameFrame.setLayoutParams(modified);
+            }
         }
 
         return marbleY;
@@ -250,9 +288,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     public boolean onTouchEvent(MotionEvent event) {
         if (hasStarted) {
             if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                doingSomething = true;
+                assertMovingRight = true;
             } else if (event.getAction() == MotionEvent.ACTION_UP) {
-                doingSomething = false;
+                assertMovingRight = false;
             }
         }
         return true;
