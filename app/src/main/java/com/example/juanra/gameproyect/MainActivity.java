@@ -6,11 +6,9 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.opengl.Visibility;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
@@ -18,7 +16,6 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import java.lang.annotation.Native;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -27,15 +24,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     // Atributos del FrameLayout del juego
     private FrameLayout gameFrame;
-    private int frameHeight, frameWidth, initialframeWidth;
+    private int frameHeight, frameWidth, initialframeWidth, minFrameWidth;
     private LinearLayout gameLayout;
 
     // Elementos del juego
     private PlayerObject player;
     private ObstacleObject blueMarble;
+    private WallObject laserWall;
     private SpecialObstacleObject redMarble;
     private SpecialObstacleObject blackMarble;
     private ScoreBoard scoreBoard;
+
+    private ImageView warningArrow;
 
     // Tamaño y posiciones auxiliares de los elementos
     private int playerSize;
@@ -43,10 +43,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private float blueX, blueY;
     private float redX, redY;
     private float blackX, blackY;
+    private float laserX;
+    private float arrowX;
 
     // Variables de estado de los objetos
     private boolean hasStarted = false;
-    private boolean blackMarbleAction, redMarbleAction = false;
+    private boolean blackMarbleAction, redMarbleAction, laserAction = false;
     private boolean assertMovingRight = false;
 
     // Sensor acelerometro
@@ -112,8 +114,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         // Inicializa el objeto player
         ImageView playerImage = findViewById(R.id.player);
         playerImage.getHeight();
-        Drawable playerLeft = getResources().getDrawable(R.drawable.balloon_left);
-        Drawable playerRight = getResources().getDrawable(R.drawable.balloon_right);
+        Drawable playerLeft = getResources().getDrawable(R.drawable.player_left);
+        Drawable playerRight = getResources().getDrawable(R.drawable.player_right);
 
         player = new PlayerObject(playerImage, playerLeft, playerRight);
 
@@ -121,12 +123,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         rand = new Random();
 
         ImageView blueImage = findViewById(R.id.blueMarble);
+        ImageView laserImage = findViewById(R.id.laserBeam);
         ImageView redImage = findViewById(R.id.redMarble);
         ImageView blackImage = findViewById(R.id.blackMarble);
+        warningArrow = findViewById(R.id.laserHint);
 
         blueMarble = new ObstacleObject(blueImage, 10, 10);
-        redMarble = new SpecialObstacleObject(redImage, 30, 20, 30);
-        blackMarble = new SpecialObstacleObject(blackImage, -10, 10, -60);
+        redMarble = new SpecialObstacleObject(redImage, 30, 20);
+        blackMarble = new SpecialObstacleObject(blackImage, -10, 10);
+        laserWall = new WallObject(laserImage);
 
         // Inicializa el scoreboard
         TextView score = findViewById(R.id.scoreboard);
@@ -141,6 +146,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             frameHeight = gameFrame.getHeight();
             frameWidth = gameFrame.getWidth();
             initialframeWidth = frameWidth;
+            minFrameWidth = 100;
 
             // Obtenemos la posicion del jugador
             playerSize = player.getPlayerSize();
@@ -152,8 +158,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             blueY  = blueMarble.getObjectY();
             redX   = redMarble.getObjectX();
             redY   = redMarble.getObjectY();
+            redMarble.setWallWidthChanged(initialframeWidth / 8);
             blackX = blackMarble.getObjectX();
             blackY = blackMarble.getObjectY();
+            blackMarble.setWallWidthChanged(-(initialframeWidth / 4));
+            laserX = laserWall.getObjectX();
         }
     }
 
@@ -169,7 +178,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             } else {
                 assertMovingRight = false;
             }
-            //updatePos(assertMovingRight);
         }
     }
 
@@ -221,6 +229,32 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         if (redY > frameHeight) redMarbleAction = false;
 
+        // Laser
+        if (timeCount % 10000 == 0) {
+            laserX = (float) Math.floor(rand.nextDouble() * (frameWidth - redMarble.getImageWidth()));
+            warningArrow.setX(laserX);
+            warningArrow.setVisibility(View.VISIBLE);
+        }
+
+        if (timeCount % 12000 == 0) {
+            laserAction = true;
+            warningArrow.setVisibility(View.INVISIBLE);
+            laserWall.setImageX(laserX);
+            laserWall.setImageVisibility(View.VISIBLE);
+        }
+
+        if (laserAction) {
+            if (laserWallCollided(laserX)) {
+                endGame();
+            }
+        }
+
+        if (timeCount % 15000 == 0) {
+            laserWall.setImageVisibility(View.INVISIBLE);
+            laserWall.setImageX(3000f);
+            laserAction = false;
+        }
+
         redMarble.setImageX(redX);
         redMarble.setImageY(redY);
 
@@ -239,14 +273,40 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             // Cambia el ancho del frame si es una bola especial
             if (marble instanceof SpecialObstacleObject) {
                 frameWidth += ((SpecialObstacleObject) marble).getWallWidthChanged();
+                if (frameWidth > initialframeWidth) {
+                    frameWidth = initialframeWidth;
+                    scoreBoard.increment(50); // Bonus score
+                }
                 ViewGroup.LayoutParams modified = gameFrame.getLayoutParams();
                 modified.width = frameWidth;
 
                 gameFrame.setLayoutParams(modified);
+                if (minFrameWidth > frameWidth) {
+                    endGame();
+                }
             }
         }
-
         return marbleY;
+    }
+
+    private void endGame() {
+        timer.cancel();
+        timer = new Timer();
+
+        hasStarted = false;
+
+        // Cambia la visibilidad de los elementos
+        player.setImageVisibility(View.INVISIBLE);
+        blueMarble.setImageVisibility(View.INVISIBLE);
+        redMarble.setImageVisibility(View.INVISIBLE);
+        blackMarble.setImageVisibility(View.INVISIBLE);
+        laserWall.setImageVisibility(View.INVISIBLE);
+        gameLayout.setVisibility(View.VISIBLE);
+
+        ViewGroup.LayoutParams modified = gameFrame.getLayoutParams();
+        modified.width = initialframeWidth;
+
+        gameFrame.setLayoutParams(modified);
     }
 
     private void updatePlayerPos() {
@@ -277,6 +337,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         // Comprobamos la colision por ambos lados y por arriba
         return (playerX <= x && x <= playerX + playerSize &&
                 playerY <= y && y <= frameHeight);
+    }
+
+    private boolean laserWallCollided(float x) {
+        return (playerX >= x && playerX <= (x + laserWall.getImageWidth()));
     }
 
     @Override

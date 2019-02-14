@@ -7,10 +7,9 @@ public class SpecialObstacleObject extends ObstacleObject {
     private boolean active;
     private int wallWidthChanged;
 
-    public SpecialObstacleObject(ImageView image, int increment, int movementPoints, int wallWidthChanged) {
+    public SpecialObstacleObject(ImageView image, int increment, int movementPoints) {
         super(image, increment, movementPoints);
         active = false;
-        this.wallWidthChanged = wallWidthChanged;
     }
 
     public void toggleAction() {
@@ -19,5 +18,9 @@ public class SpecialObstacleObject extends ObstacleObject {
 
     public int getWallWidthChanged() {
         return wallWidthChanged;
+    }
+
+    public void setWallWidthChanged(int width) {
+        this.wallWidthChanged = width;
     }
 }
