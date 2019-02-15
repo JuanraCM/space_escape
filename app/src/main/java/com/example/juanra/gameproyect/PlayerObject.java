@@ -3,7 +3,7 @@ package com.example.juanra.gameproyect;
 import android.graphics.drawable.Drawable;
 import android.widget.ImageView;
 
-public class PlayerObject extends GameObject {
+public class PlayerObject extends SpaceshipObject {
 
     private Drawable imgLeft, imgRight;
     private int playerSize;

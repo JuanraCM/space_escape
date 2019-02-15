@@ -2,7 +2,7 @@ package com.example.juanra.gameproyect;
 
 import android.widget.ImageView;
 
-public class WallObject extends GameObject {
+public class WallObject extends SpaceshipObject {
 
     public WallObject() {
     }

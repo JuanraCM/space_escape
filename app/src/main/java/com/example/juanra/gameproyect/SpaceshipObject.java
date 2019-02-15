@@ -9,17 +9,17 @@ import android.widget.ImageView;
 *
 * */
 
-public abstract class GameObject {
+public class SpaceshipObject {
 
     private ImageView image;
     private float objectX;
     private float objectY;
 
-    public GameObject() {
+    public SpaceshipObject() {
 
     }
 
-    public GameObject(ImageView image, float objectX, float objectY) {
+    public SpaceshipObject(ImageView image, float objectX, float objectY) {
         this.image = image;
         this.objectX = objectX;
         this.objectY = objectY;

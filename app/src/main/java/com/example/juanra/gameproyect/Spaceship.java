@@ -2,11 +2,11 @@ package com.example.juanra.gameproyect;
 
 import android.widget.ImageView;
 
-public class ObstacleObject extends GameObject {
+public class Spaceship extends SpaceshipObject {
 
     private int increment, movementPoints;
 
-    public ObstacleObject(ImageView image, int increment, int movementPoints) {
+    public Spaceship(ImageView image, int increment, int movementPoints) {
         super(image, 3000.0f, image.getY());
         this.increment = increment;
     }

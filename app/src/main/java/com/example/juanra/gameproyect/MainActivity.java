@@ -9,6 +9,7 @@ import android.hardware.SensorManager;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
@@ -29,10 +30,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     // Elementos del juego
     private PlayerObject player;
-    private ObstacleObject blueMarble;
+    private Spaceship firstSpaceship;
+    private SpaceshipObject misil;
     private WallObject laserWall;
-    private SpecialObstacleObject redMarble;
-    private SpecialObstacleObject blackMarble;
+    private SpecialSpaceship redMarble;
+    private SpecialSpaceship blackMarble;
     private ScoreBoard scoreBoard;
 
     private ImageView warningArrow;
@@ -41,8 +43,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private int playerSize;
     private float playerX, playerY;
     private float blueX, blueY;
-    private float redX, redY;
-    private float blackX, blackY;
+    private float misilX, misilY;
     private float laserX;
     private float arrowX;
 
@@ -50,6 +51,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private boolean hasStarted = false;
     private boolean blackMarbleAction, redMarbleAction, laserAction = false;
     private boolean assertMovingRight = false;
+    private boolean shooting = false;
+    private boolean canShoot = true;
 
     // Sensor acelerometro
     private SensorManager sensorManager;
@@ -91,9 +94,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         // Cambiamos la visibilidad de los elementos
         gameLayout.setVisibility(View.INVISIBLE);
         player.setImageVisibility(View.VISIBLE);
-        blueMarble.setImageVisibility(View.VISIBLE);
-        redMarble.setImageVisibility(View.VISIBLE);
-        blackMarble.setImageVisibility(View.VISIBLE);
+        firstSpaceship.setImageVisibility(View.VISIBLE);
 
         timer.schedule(new TimerTask() {
             @Override
@@ -108,6 +109,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 }
             }
         },0,  20);
+
+        gameFrame.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (canShoot)shooting = true;
+            }
+        });
     }
 
     private void initializeGameElements() {
@@ -122,15 +130,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         // Inicializa los elementos que van cayendo
         rand = new Random();
 
-        ImageView blueImage = findViewById(R.id.blueMarble);
+        ImageView blueImage = findViewById(R.id.spaceship1);
+        ImageView misilImage = findViewById(R.id.shoot);
         ImageView laserImage = findViewById(R.id.laserBeam);
         ImageView redImage = findViewById(R.id.redMarble);
         ImageView blackImage = findViewById(R.id.blackMarble);
         warningArrow = findViewById(R.id.laserHint);
 
-        blueMarble = new ObstacleObject(blueImage, 10, 10);
-        redMarble = new SpecialObstacleObject(redImage, 30, 20);
-        blackMarble = new SpecialObstacleObject(blackImage, -10, 10);
+        firstSpaceship = new Spaceship(blueImage, 10, 12);
+        misil = new SpaceshipObject(misilImage, player.getObjectX(),player.getObjectY());
         laserWall = new WallObject(laserImage);
 
         // Inicializa el scoreboard
@@ -154,14 +162,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             playerY = player.getObjectY();
 
             // Obtenemos la posicion de los demas objetos
-            blueX  = blueMarble.getObjectX();
-            blueY  = blueMarble.getObjectY();
-            redX   = redMarble.getObjectX();
-            redY   = redMarble.getObjectY();
-            redMarble.setWallWidthChanged(initialframeWidth / 8);
-            blackX = blackMarble.getObjectX();
-            blackY = blackMarble.getObjectY();
-            blackMarble.setWallWidthChanged(-(initialframeWidth / 4));
+            blueX  = firstSpaceship.getObjectX();
+            blueY  = firstSpaceship.getObjectY();
             laserX = laserWall.getObjectX();
         }
     }
@@ -186,57 +188,34 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         timeCount += 20;
 
         // Movimiento de la bola azul
-        blueY += 10; // Unidades que se mueve en el eje vertical
-        blueY = updateMarblePos(blueMarble, blueX, blueY);
+        blueY += 5; // Unidades que se mueve en el eje vertical
+        blueY = updateMarblePos(firstSpaceship, blueX, blueY);
 
         // Si la y se encuentra por debajo del frame la volvemos a poner arriba
         if (blueY > frameHeight) {
-            blueY = -100;
-            blueX = (float) Math.floor(rand.nextDouble() * (frameWidth - blueMarble.getImageWidth()));
+            blueY = -500;
+            blueX = (float) Math.floor(rand.nextDouble() * (frameWidth - firstSpaceship.getImageWidth()));
+            misilY = -100f;
         }
 
-        blueMarble.setImageX(blueX);
-        blueMarble.setImageY(blueY);
-
-        // Movimiento de la bola negra
-        if (!blackMarbleAction && timeCount % 10000 == 0) {
-            blackMarbleAction = true;
-            blackY = -20;
-            blackX = (float) Math.floor(rand.nextDouble() * (frameWidth - blackMarble.getImageWidth()));
+        if (shooting && hit(blueX, blueY, firstSpaceship)) {
+            blueY = -500;
+            blueX = (float) Math.floor(rand.nextDouble() * (frameWidth - firstSpaceship.getImageWidth()));
+            misilY = -100f;
+            scoreBoard.increment(firstSpaceship.getIncrement());
         }
 
-        if (blackMarbleAction) {
-            blackY += 20;
-            blackY = updateMarblePos(blackMarble, blackX, blackY);
-        }
-
-        if (blackY > frameHeight) blackMarbleAction = false;
-
-        blackMarble.setImageX(blackX);
-        blackMarble.setImageY(blackY);
-
-        // Movimiento de la bola roja
-        if (!redMarbleAction && timeCount % 15000 == 0) {
-            redMarbleAction = true;
-            redY = -20;
-            redX = (float) Math.floor(rand.nextDouble() * (frameWidth - redMarble.getImageWidth()));
-        }
-
-        if (redMarbleAction) {
-            redY += 25;
-            redY = updateMarblePos(redMarble, redX, redY);
-        }
-
-        if (redY > frameHeight) redMarbleAction = false;
+        firstSpaceship.setImageX(blueX);
+        firstSpaceship.setImageY(blueY);
 
         // Laser
         if (timeCount % 10000 == 0) {
-            laserX = (float) Math.floor(rand.nextDouble() * (frameWidth - redMarble.getImageWidth()));
+            laserX = (float) Math.floor(rand.nextDouble() * (frameWidth));
             warningArrow.setX(laserX);
             warningArrow.setVisibility(View.VISIBLE);
         }
 
-        if (timeCount % 12000 == 0) {
+        if (timeCount % 11000 == 0) {
             laserAction = true;
             warningArrow.setVisibility(View.INVISIBLE);
             laserWall.setImageX(laserX);
@@ -249,20 +228,30 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }
         }
 
-        if (timeCount % 15000 == 0) {
+        if (timeCount % 13000 == 0) {
             laserWall.setImageVisibility(View.INVISIBLE);
             laserWall.setImageX(3000f);
             laserAction = false;
+            timeCount = 0;
         }
-
-        redMarble.setImageX(redX);
-        redMarble.setImageY(redY);
 
         // Movimiento del jugador
         updatePlayerPos();
     }
 
-    private float updateMarblePos(ObstacleObject marble, float marbleX, float marbleY) {
+    private boolean hit(float x, float y, SpaceshipObject o) {
+        Log.d("POSMISIL","Y: " + misil.getObjectY());
+        Log.d("POSBOLA","Y: " + y);
+        Log.d("POSBOLAW","Y: " + (y - o.getImageHeight()));
+        if (misilX >= x && misilX <= (x + o.getImageWidth()) &&
+                misilY >= (y - o.getImageHeight()) && misilY <= (y + o.getImageHeight())) {
+            Log.d("asd", o.getImageHeight() + "");
+            return true;
+        }
+        else return false;
+    }
+
+    private float updateMarblePos(Spaceship marble, float marbleX, float marbleY) {
         float marbleCenterX = marbleX + marble.getImageWidth() / 2;
         float marbleCenterY = marbleY + marble.getImageHeight() / 2;
 
@@ -271,8 +260,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             scoreBoard.increment(marble.getIncrement());
 
             // Cambia el ancho del frame si es una bola especial
-            if (marble instanceof SpecialObstacleObject) {
-                frameWidth += ((SpecialObstacleObject) marble).getWallWidthChanged();
+            if (marble instanceof SpecialSpaceship) {
+                frameWidth += ((SpecialSpaceship) marble).getWallWidthChanged();
                 if (frameWidth > initialframeWidth) {
                     frameWidth = initialframeWidth;
                     scoreBoard.increment(50); // Bonus score
@@ -297,9 +286,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         // Cambia la visibilidad de los elementos
         player.setImageVisibility(View.INVISIBLE);
-        blueMarble.setImageVisibility(View.INVISIBLE);
-        redMarble.setImageVisibility(View.INVISIBLE);
-        blackMarble.setImageVisibility(View.INVISIBLE);
+        firstSpaceship.setImageVisibility(View.INVISIBLE);
         laserWall.setImageVisibility(View.INVISIBLE);
         gameLayout.setVisibility(View.VISIBLE);
 
@@ -327,6 +314,26 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         if (frameWidth - playerSize < playerX) {
             playerX = (frameWidth - playerSize);
             player.changeDrawable(PlayerDirection.LEFT);
+        }
+
+        // Shooting
+        if (canShoot) {
+            misil.setImageX(playerX);
+            misilY = playerY;
+            misilX = playerX;
+        }
+
+        if (shooting) {
+            misil.setImageVisibility(View.VISIBLE);
+            canShoot = false;
+            misilY -= 30;
+            misil.setImageY(misilY);
+        }
+
+        if (misilY < 0) {
+            misil.setImageVisibility(View.INVISIBLE);
+            canShoot = true;
+            shooting = false;
         }
 
         // Actualizamos la posicion de player

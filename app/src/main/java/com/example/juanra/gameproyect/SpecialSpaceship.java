@@ -2,12 +2,12 @@ package com.example.juanra.gameproyect;
 
 import android.widget.ImageView;
 
-public class SpecialObstacleObject extends ObstacleObject {
+public class SpecialSpaceship extends Spaceship {
 
     private boolean active;
     private int wallWidthChanged;
 
-    public SpecialObstacleObject(ImageView image, int increment, int movementPoints) {
+    public SpecialSpaceship(ImageView image, int increment, int movementPoints) {
         super(image, increment, movementPoints);
         active = false;
     }

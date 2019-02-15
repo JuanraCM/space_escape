@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/wall"
+    android:background="@android:color/white"
     tools:context=".MainActivity"
     android:orientation="vertical">
 
@@ -20,7 +20,7 @@
         android:layout_marginBottom="20dp" />
 
     <FrameLayout android:id="@+id/gameFrame"
-        android:layout_width="260dp"
+        android:layout_width="330dp"
         android:layout_height="match_parent"
         android:background="@drawable/background"
         android:layout_gravity="center_horizontal">
@@ -33,10 +33,10 @@
             android:layout_marginBottom="5dp"
             android:visibility="invisible"/>
         
-        <ImageView android:id="@+id/blueMarble"
-            android:layout_width="20dp"
-            android:layout_height="20dp"
-            android:src="@drawable/blue"
+        <ImageView android:id="@+id/spaceship1"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:src="@drawable/spaceship_1"
             android:visibility="invisible"/>
 
         <ImageView android:id="@+id/redMarble"
@@ -49,6 +49,12 @@
             android:layout_width="20dp"
             android:layout_height="20dp"
             android:src="@drawable/missile"
+            android:visibility="invisible"/>
+
+        <ImageView android:id="@+id/shoot"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/shooting_missile"
             android:visibility="invisible"/>
 
         <ImageView android:id="@+id/laserBeam"
