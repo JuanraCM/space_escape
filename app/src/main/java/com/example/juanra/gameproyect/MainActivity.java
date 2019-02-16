@@ -228,7 +228,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         // Variable que controla la caida de las naves
         timeCount += 20;
 
-        // Movimiento de la bola azul
+        // Movimiento de la nave enemiga en pantalla
         shipY += currentShip.getMovementPoints(); // Unidades que se mueve en el eje vertical
         shipY = updateShipPos(currentShip, shipX, shipY);
 
