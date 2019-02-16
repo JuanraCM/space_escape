@@ -19,6 +19,12 @@ public class SpaceshipObject {
 
     }
 
+    public SpaceshipObject(float objectX, float objectY) {
+        this.image = null;
+        this.objectX = objectX;
+        this.objectY = objectY;
+    }
+
     public SpaceshipObject(ImageView image, float objectX, float objectY) {
         this.image = image;
         this.objectX = objectX;

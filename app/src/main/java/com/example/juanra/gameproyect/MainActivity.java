@@ -9,7 +9,6 @@ import android.hardware.SensorManager;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
@@ -29,39 +28,40 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private LinearLayout gameLayout;
 
     // Elementos del juego
-    private PlayerObject player;
-    private Spaceship firstSpaceship;
-    private SpaceshipObject misil;
-    private WallObject laserWall;
-    private SpecialSpaceship redMarble;
-    private SpecialSpaceship blackMarble;
-    private ScoreBoard scoreBoard;
-
+    private Player player;
+    private Spaceship currentShip;
+    private SpaceshipObject playerShot;
+    private WallLaser laserWall;
     private ImageView warningArrow;
+    private ScoreBoard scoreBoard;
+    private ImageView currentShipImage;
+
+    // Diferentes naves
+    private Spaceship[] spaceships;
 
     // Tamaño y posiciones auxiliares de los elementos
     private int playerSize;
     private float playerX, playerY;
-    private float blueX, blueY;
-    private float misilX, misilY;
+    private float shipX, shipY;
+    private float playerShotX, playerShotY;
     private float laserX;
-    private float arrowX;
 
     // Variables de estado de los objetos
     private boolean hasStarted = false;
-    private boolean blackMarbleAction, redMarbleAction, laserAction = false;
-    private boolean assertMovingRight = false;
+    private boolean laserAction = false;
+    private boolean movingRight = false;
+    private boolean movingLeft = false;
     private boolean shooting = false;
     private boolean canShoot = true;
 
     // Sensor acelerometro
     private SensorManager sensorManager;
 
-    // Variable random para la posicion X de las bolas
+    // Variable random para la posicion X de los objetos
     private Random rand;
 
     // TimeCount
-    int timeCount = 0;
+    private int timeCount = 0;
 
     // Timer para el metodo updatePos
     private Timer timer;
@@ -94,7 +94,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         // Cambiamos la visibilidad de los elementos
         gameLayout.setVisibility(View.INVISIBLE);
         player.setImageVisibility(View.VISIBLE);
-        firstSpaceship.setImageVisibility(View.VISIBLE);
+        currentShip.setImageVisibility(View.VISIBLE);
 
         timer.schedule(new TimerTask() {
             @Override
@@ -103,17 +103,17 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     handler.post(new Runnable() {
                         @Override
                         public void run() {
-                            updatePos(assertMovingRight);
+                            updatePos();
                         }
                     });
                 }
             }
-        },0,  20);
+        }, 0, 20);
 
         gameFrame.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (canShoot)shooting = true;
+                if (canShoot) shooting = true;
             }
         });
     }
@@ -124,28 +124,52 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         playerImage.getHeight();
         Drawable playerLeft = getResources().getDrawable(R.drawable.player_left);
         Drawable playerRight = getResources().getDrawable(R.drawable.player_right);
+        Drawable playerQuiet = getResources().getDrawable(R.drawable.player_quiet);
 
-        player = new PlayerObject(playerImage, playerLeft, playerRight);
+        player = new Player(playerImage, playerLeft, playerRight, playerQuiet);
 
         // Inicializa los elementos que van cayendo
         rand = new Random();
 
-        ImageView blueImage = findViewById(R.id.spaceship1);
-        ImageView misilImage = findViewById(R.id.shoot);
+        currentShipImage = findViewById(R.id.currentSpaceship);
+        ImageView playerShotImage = findViewById(R.id.laserShot);
         ImageView laserImage = findViewById(R.id.laserBeam);
-        ImageView redImage = findViewById(R.id.redMarble);
-        ImageView blackImage = findViewById(R.id.blackMarble);
         warningArrow = findViewById(R.id.laserHint);
 
-        firstSpaceship = new Spaceship(blueImage, 10, 12);
-        misil = new SpaceshipObject(misilImage, player.getObjectX(),player.getObjectY());
-        laserWall = new WallObject(laserImage);
+        spaceships = SpaceshipCreator.createSpaceships();
+        setCurrentShip();
+
+        playerShot = new SpaceshipObject(playerShotImage, player.getObjectX(), player.getObjectY());
+        laserWall = new WallLaser(laserImage);
 
         // Inicializa el scoreboard
         TextView score = findViewById(R.id.scoreboard);
         TextView hiScoreLabel = findViewById(R.id.highScoreLabel);
 
         scoreBoard = new ScoreBoard(score, hiScoreLabel);
+    }
+
+    private void setCurrentShip() {
+        int nShip = rand.nextInt(spaceships.length);
+        currentShip = spaceships[nShip];
+
+        switch (nShip) {
+            case 0 : currentShipImage.setImageDrawable(getResources().getDrawable(R.drawable.spaceship_1));
+                break;
+            case 1 : currentShipImage.setImageDrawable(getResources().getDrawable(R.drawable.spaceship_2));
+                break;
+            case 2 : currentShipImage.setImageDrawable(getResources().getDrawable(R.drawable.spaceship_3));
+                break;
+            case 3 : currentShipImage.setImageDrawable(getResources().getDrawable(R.drawable.spaceship_4));
+                break;
+            case 4 : currentShipImage.setImageDrawable(getResources().getDrawable(R.drawable.spaceship_5));
+                break;
+            case 5 : currentShipImage.setImageDrawable(getResources().getDrawable(R.drawable.spaceship_6));
+                break;
+            case 6 : currentShipImage.setImageDrawable(getResources().getDrawable(R.drawable.spaceship_7));
+                break;
+        }
+        currentShip.setImage(currentShipImage);
     }
 
     private void setGameBounds() {
@@ -162,8 +186,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             playerY = player.getObjectY();
 
             // Obtenemos la posicion de los demas objetos
-            blueX  = firstSpaceship.getObjectX();
-            blueY  = firstSpaceship.getObjectY();
+            shipX = spaceships[0].getObjectX();
+            shipY = spaceships[0].getObjectY();
             laserX = laserWall.getObjectX();
         }
     }
@@ -174,39 +198,52 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     @Override
     public void onSensorChanged(SensorEvent event) {
+
         if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
-            if (event.values[0] < 0) {
-                assertMovingRight = true;
+            if (event.values[0] < -1) {
+                movingRight = true;
+                movingLeft = false;
+            } else if (event.values[0] > 1) {
+                movingRight = false;
+                movingLeft = true;
             } else {
-                assertMovingRight = false;
+                movingRight = false;
+                movingLeft = false;
             }
         }
     }
 
-    private void updatePos(boolean assertMovingRight) {
-        // Variable que controla la caida de las bolas
+    private void updatePos() {
+        // Variable que controla la caida de las naves
         timeCount += 20;
 
         // Movimiento de la bola azul
-        blueY += 5; // Unidades que se mueve en el eje vertical
-        blueY = updateMarblePos(firstSpaceship, blueX, blueY);
+        shipY += currentShip.getMovementPoints(); // Unidades que se mueve en el eje vertical
+        shipY = updateShipPos(currentShip, shipX, shipY);
 
-        // Si la y se encuentra por debajo del frame la volvemos a poner arriba
-        if (blueY > frameHeight) {
-            blueY = -500;
-            blueX = (float) Math.floor(rand.nextDouble() * (frameWidth - firstSpaceship.getImageWidth()));
-            misilY = -100f;
+        // Si la y se encuentra por debajo del frame la volvemos a poner arriba y cambiamos de nave
+        if (shipY > frameHeight) {
+            shipY = -500;
+            shipX = (float) Math.floor(rand.nextDouble() * (frameWidth - currentShip.getImageWidth()));
+            playerShotY = -100f;
+
+            setCurrentShip();
         }
 
-        if (shooting && hit(blueX, blueY, firstSpaceship)) {
-            blueY = -500;
-            blueX = (float) Math.floor(rand.nextDouble() * (frameWidth - firstSpaceship.getImageWidth()));
-            misilY = -100f;
-            scoreBoard.increment(firstSpaceship.getIncrement());
+        if (shooting && hit(shipX, shipY, currentShip)) {
+            playerShotY = -100f;
+
+            if (currentShip.isDead()) {
+                shipY = -500;
+                shipX = (float) Math.floor(rand.nextDouble() * (frameWidth - currentShip.getImageWidth()));
+                scoreBoard.increment(currentShip.getIncrement());
+
+                setCurrentShip();
+            }
         }
 
-        firstSpaceship.setImageX(blueX);
-        firstSpaceship.setImageY(blueY);
+        currentShip.setImageX(shipX);
+        currentShip.setImageY(shipY);
 
         // Laser
         if (timeCount % 10000 == 0) {
@@ -239,46 +276,32 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         updatePlayerPos();
     }
 
+    // Devuelve true si le hemos dado a una nave
     private boolean hit(float x, float y, SpaceshipObject o) {
-        Log.d("POSMISIL","Y: " + misil.getObjectY());
-        Log.d("POSBOLA","Y: " + y);
-        Log.d("POSBOLAW","Y: " + (y - o.getImageHeight()));
-        if (misilX >= x && misilX <= (x + o.getImageWidth()) &&
-                misilY >= (y - o.getImageHeight()) && misilY <= (y + o.getImageHeight())) {
-            Log.d("asd", o.getImageHeight() + "");
+        if (playerShotX >= x && playerShotX <= (x + o.getImageWidth()) &&
+                playerShotY >= (y - o.getImageHeight()) && playerShotY <= (y + o.getImageHeight())) {
+            currentShip.damage();
             return true;
-        }
-        else return false;
+        } else return false;
     }
 
-    private float updateMarblePos(Spaceship marble, float marbleX, float marbleY) {
-        float marbleCenterX = marbleX + marble.getImageWidth() / 2;
-        float marbleCenterY = marbleY + marble.getImageHeight() / 2;
+    private float updateShipPos(Spaceship spaceship, float spaceshipX, float spaceshipY) {
+        float spaceshipCenterX = spaceshipX + spaceship.getImageWidth() / 2;
+        float spaceshipCenterY = spaceshipY + spaceship.getImageHeight() / 2;
 
-        if (hasCollided(marbleCenterX, marbleCenterY)) {
-            marbleY = frameHeight + 100;
-            scoreBoard.increment(marble.getIncrement());
-
-            // Cambia el ancho del frame si es una bola especial
-            if (marble instanceof SpecialSpaceship) {
-                frameWidth += ((SpecialSpaceship) marble).getWallWidthChanged();
-                if (frameWidth > initialframeWidth) {
-                    frameWidth = initialframeWidth;
-                    scoreBoard.increment(50); // Bonus score
-                }
-                ViewGroup.LayoutParams modified = gameFrame.getLayoutParams();
-                modified.width = frameWidth;
-
-                gameFrame.setLayoutParams(modified);
-                if (minFrameWidth > frameWidth) {
-                    endGame();
-                }
-            }
+        if (hasCollided(spaceshipCenterX, spaceshipCenterY)) {
+            spaceshipY = frameHeight + 100;
+            endGame();
         }
-        return marbleY;
+        return spaceshipY;
     }
 
     private void endGame() {
+
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) { }
+
         timer.cancel();
         timer = new Timer();
 
@@ -286,9 +309,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         // Cambia la visibilidad de los elementos
         player.setImageVisibility(View.INVISIBLE);
-        firstSpaceship.setImageVisibility(View.INVISIBLE);
+        currentShip.setImageVisibility(View.INVISIBLE);
         laserWall.setImageVisibility(View.INVISIBLE);
+        laserX = -3000f;
         gameLayout.setVisibility(View.VISIBLE);
+        playerShot.setImageVisibility(View.INVISIBLE);
 
         ViewGroup.LayoutParams modified = gameFrame.getLayoutParams();
         modified.width = initialframeWidth;
@@ -297,12 +322,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     private void updatePlayerPos() {
-        if (assertMovingRight) {
+        if (movingRight) {
             playerX += 10;
             player.changeDrawable(PlayerDirection.RIGHT);
-        } else {
+        } else if (movingLeft) {
             playerX -= 10;
             player.changeDrawable(PlayerDirection.LEFT);
+        } else {
+            player.changeDrawable(PlayerDirection.QUIET);
         }
 
         // Controlamos que el jugados este en algun extremo
@@ -316,36 +343,42 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             player.changeDrawable(PlayerDirection.LEFT);
         }
 
-        // Shooting
-        if (canShoot) {
-            misil.setImageX(playerX);
-            misilY = playerY;
-            misilX = playerX;
-        }
-
-        if (shooting) {
-            misil.setImageVisibility(View.VISIBLE);
-            canShoot = false;
-            misilY -= 30;
-            misil.setImageY(misilY);
-        }
-
-        if (misilY < 0) {
-            misil.setImageVisibility(View.INVISIBLE);
-            canShoot = true;
-            shooting = false;
-        }
+        updateShooting();
 
         // Actualizamos la posicion de player
         player.setImageX(playerX);
     }
 
+    private void updateShooting() {
+        // Shooting
+        if (canShoot) {
+            playerShot.setImageX(playerX);
+            playerShotY = playerY;
+            playerShotX = playerX;
+        }
+
+        if (shooting) {
+            playerShot.setImageVisibility(View.VISIBLE);
+            canShoot = false;
+            playerShotY -= 40;
+            playerShot.setImageY(playerShotY);
+        }
+
+        if (playerShotY < 0) {
+            playerShot.setImageVisibility(View.INVISIBLE);
+            canShoot = true;
+            shooting = false;
+        }
+    }
+
+    // Comprobamos la colision por ambos lados y por arriba
     private boolean hasCollided(float x, float y) {
-        // Comprobamos la colision por ambos lados y por arriba
+
         return (playerX <= x && x <= playerX + playerSize &&
                 playerY <= y && y <= frameHeight);
     }
 
+    // Comprobamos si el hay choque con la pared laser
     private boolean laserWallCollided(float x) {
         return (playerX >= x && playerX <= (x + laserWall.getImageWidth()));
     }
@@ -354,16 +387,4 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
 
     }
-
-    /* @Override
-    public boolean onTouchEvent(MotionEvent event) {
-        if (hasStarted) {
-            if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                assertMovingRight = true;
-            } else if (event.getAction() == MotionEvent.ACTION_UP) {
-                assertMovingRight = false;
-            }
-        }
-        return true;
-    }*/
 }
