@@ -1,16 +1,17 @@
 package com.example.juanra.gameproyect;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.drawable.Drawable;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.os.Build;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -67,6 +68,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private Timer timer;
     private Handler handler = new Handler();
 
+    // Variable para cargar el score
+    private SharedPreferences settings;
+
+    // Variable para reproducir sonidos
+    private SoundPlayer soundPlayer;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -78,6 +85,17 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
 
         timer = new Timer();
+
+        // Inicializa el scoreboard
+        TextView score = findViewById(R.id.scoreboard);
+        TextView hiScoreLabel = findViewById(R.id.highScoreLabel);
+        scoreBoard = new ScoreBoard(score, hiScoreLabel);
+
+        // Carga el score mas alto guardado en el dispositivo
+        settings = getSharedPreferences("GAME_DATA", Context.MODE_PRIVATE);
+        scoreBoard.setHighScore(settings.getInt("HIGH_SCORE", 0));
+
+        soundPlayer = new SoundPlayer(this);
     }
 
     private void registerListener() {
@@ -113,7 +131,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         gameFrame.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (canShoot) shooting = true;
+                if (canShoot) {
+                    shooting = true;
+                    soundPlayer.playLaserShotSound();
+                }
             }
         });
     }
@@ -141,12 +162,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         playerShot = new SpaceshipObject(playerShotImage, player.getObjectX(), player.getObjectY());
         laserWall = new WallLaser(laserImage);
-
-        // Inicializa el scoreboard
-        TextView score = findViewById(R.id.scoreboard);
-        TextView hiScoreLabel = findViewById(R.id.highScoreLabel);
-
-        scoreBoard = new ScoreBoard(score, hiScoreLabel);
     }
 
     private void setCurrentShip() {
@@ -192,10 +207,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
-    public void quitGame(View view) {
-
-    }
-
     @Override
     public void onSensorChanged(SensorEvent event) {
 
@@ -234,10 +245,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             playerShotY = -100f;
 
             if (currentShip.isDead()) {
+                soundPlayer.playDestroyShipSound();
                 shipY = -500;
                 shipX = (float) Math.floor(rand.nextDouble() * (frameWidth - currentShip.getImageWidth()));
                 scoreBoard.increment(currentShip.getIncrement());
-
                 setCurrentShip();
             }
         }
@@ -247,6 +258,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         // Laser
         if (timeCount % 10000 == 0) {
+            soundPlayer.playLaserWallSound();
             laserX = (float) Math.floor(rand.nextDouble() * (frameWidth));
             warningArrow.setX(laserX);
             warningArrow.setVisibility(View.VISIBLE);
@@ -315,10 +327,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         gameLayout.setVisibility(View.VISIBLE);
         playerShot.setImageVisibility(View.INVISIBLE);
 
-        ViewGroup.LayoutParams modified = gameFrame.getLayoutParams();
-        modified.width = initialframeWidth;
-
-        gameFrame.setLayoutParams(modified);
+        // Cambiamos el valor de High Score
+        if (scoreBoard.getCurrentScore() > scoreBoard.getHighScore()) {
+            scoreBoard.setHighScore(scoreBoard.getCurrentScore());
+            SharedPreferences.Editor editor = settings.edit();
+            editor.putInt("HIGH_SCORE", scoreBoard.getHighScore());
+            editor.apply();
+        }
     }
 
     private void updatePlayerPos() {
@@ -378,13 +393,23 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 playerY <= y && y <= frameHeight);
     }
 
-    // Comprobamos si el hay choque con la pared laser
+    // Comprobamos si el jugador ha choquado con la pared laser
     private boolean laserWallCollided(float x) {
-        return (playerX >= x && playerX <= (x + laserWall.getImageWidth()));
+        float playerXWidth = playerX + playerSize;
+        return (playerX >= x && playerX <= (x + laserWall.getImageWidth()) ||
+                playerXWidth >= x && playerXWidth <= (x + laserWall.getImageWidth()));
     }
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
 
+    }
+
+    public void quitGame(View view) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            finishAndRemoveTask();
+        } else {
+            finish();
+        }
     }
 }

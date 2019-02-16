@@ -17,10 +17,10 @@
         android:padding="15dp"
         android:textSize="20dp"
         android:textStyle="bold"
-        android:layout_marginBottom="20dp" />
+        android:layout_marginBottom="5dp" />
 
     <FrameLayout android:id="@+id/gameFrame"
-        android:layout_width="330dp"
+        android:layout_width="350dp"
         android:layout_height="match_parent"
         android:background="@drawable/background"
         android:layout_gravity="center_horizontal">
@@ -97,7 +97,8 @@
                 android:layout_height="wrap_content"
                 android:text="EXIT"
                 android:fontFamily="@font/orbitron_medium"
-                android:layout_marginTop="40dp"/>
+                android:layout_marginTop="40dp"
+                android:onClick="quitGame"/>
 
         </LinearLayout>
 

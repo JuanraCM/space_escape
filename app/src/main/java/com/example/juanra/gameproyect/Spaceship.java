@@ -7,7 +7,7 @@ public class Spaceship extends SpaceshipObject {
     private int increment, movementPoints, lifePoints, currentLife;
 
     public Spaceship(int increment, int movementPoints, int lifePoints) {
-        super(3000.0f, 0);
+        super(3000.0f, 100);
         this.movementPoints = movementPoints;
         this.increment = increment;
         this.lifePoints = lifePoints;
