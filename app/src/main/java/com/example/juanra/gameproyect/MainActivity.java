@@ -36,6 +36,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private ImageView warningArrow;
     private ScoreBoard scoreBoard;
     private ImageView currentShipImage;
+    private TextView livesCounter;
 
     // Diferentes naves
     private Spaceship[] spaceships;
@@ -46,6 +47,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private float shipX, shipY;
     private float playerShotX, playerShotY;
     private float laserX;
+    private int goneShips; // Cuenta las naves que se han escapado para actualizar livesCounter
+    private final int MAX_GONE_SHIPS = 3;
 
     // Variables de estado de los objetos
     private boolean hasStarted = false;
@@ -81,6 +84,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         gameFrame = findViewById(R.id.gameFrame);
         gameLayout = findViewById(R.id.gameLayout);
+        livesCounter = findViewById(R.id.livesCounter);
 
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
 
@@ -131,7 +135,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         gameFrame.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (canShoot) {
+                if (canShoot && hasStarted) {
                     shooting = true;
                     soundPlayer.playLaserShotSound();
                 }
@@ -163,8 +167,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         playerShot = new SpaceshipObject(playerShotImage, player.getObjectX(), player.getObjectY());
         laserWall = new WallLaser(laserImage);
 
-        // Pone a 0 el score
+        // Pone a 0 el score y las naves que han escapado
         scoreBoard.setCurrentScore(0);
+        goneShips = 0;
+        livesCounter.setVisibility(View.VISIBLE);
+        livesCounter.setText("Vidas restantes: 3");
     }
 
     private void setCurrentShip() {
@@ -239,7 +246,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         if (shipY > frameHeight) {
             shipY = -500;
             shipX = (float) Math.floor(rand.nextDouble() * (frameWidth - currentShip.getImageWidth()));
-            playerShotY = -100f;
+            // Actualiza la variable goneShips
+            goneShips++;
+            updateLives();
 
             setCurrentShip();
         }
@@ -291,6 +300,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         updatePlayerPos();
     }
 
+    private void updateLives() {
+        livesCounter.setText("Vidas restantes: " + (3 - goneShips));
+        if (goneShips == MAX_GONE_SHIPS) endGame();
+    }
+
     // Devuelve true si le hemos dado a una nave
     private boolean hit(float x, float y, SpaceshipObject o) {
         if (playerShotX >= x && playerShotX <= (x + o.getImageWidth()) &&
@@ -329,6 +343,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         laserX = -3000f;
         gameLayout.setVisibility(View.VISIBLE);
         playerShot.setImageVisibility(View.INVISIBLE);
+        livesCounter.setVisibility(View.INVISIBLE);
 
         // Cambiamos el valor de High Score
         if (scoreBoard.getCurrentScore() > scoreBoard.getHighScore()) {

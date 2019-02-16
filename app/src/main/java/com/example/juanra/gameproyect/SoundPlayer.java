@@ -9,7 +9,7 @@ import android.os.Build;
 public class SoundPlayer {
 
     private AudioAttributes audioAttributes;
-    final int SOUND_POOL_MAX = 3;
+    final int SOUND_POOL_MAX = 4;
 
     private static SoundPool soundPool;
     private static int laserShotSound;

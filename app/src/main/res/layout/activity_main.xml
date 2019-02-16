@@ -19,6 +19,13 @@
         android:textStyle="bold"
         android:layout_marginBottom="5dp" />
 
+    <TextView android:id="@+id/livesCounter"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="@android:color/white"
+        android:fontFamily="@font/orbitron_regular"
+        android:visibility="invisible"/>
+
     <FrameLayout android:id="@+id/gameFrame"
         android:layout_width="350dp"
         android:layout_height="match_parent"
