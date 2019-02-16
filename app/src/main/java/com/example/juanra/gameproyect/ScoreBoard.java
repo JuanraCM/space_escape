@@ -43,6 +43,7 @@ public class ScoreBoard {
 
     public void setCurrentScore(int currentScore) {
         this.currentScore = currentScore;
+        scoreBoard.setText("Score: " + currentScore);
     }
 
     public int getHighScore() {

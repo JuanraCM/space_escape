@@ -162,6 +162,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         playerShot = new SpaceshipObject(playerShotImage, player.getObjectX(), player.getObjectY());
         laserWall = new WallLaser(laserImage);
+
+        // Pone a 0 el score
+        scoreBoard.setCurrentScore(0);
     }
 
     private void setCurrentShip() {
@@ -375,7 +378,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         if (shooting) {
             playerShot.setImageVisibility(View.VISIBLE);
             canShoot = false;
-            playerShotY -= 40;
+            playerShotY -= 60;
             playerShot.setImageY(playerShotY);
         }
 
