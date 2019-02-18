@@ -94,7 +94,7 @@
             <Button android:id="@+id/startGameBtn"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="START GAME"
+                android:text="EMPEZAR PARTIDA"
                 android:fontFamily="@font/orbitron_medium"
                 android:layout_marginTop="60dp"
                 android:onClick="startGame"/>
@@ -102,7 +102,7 @@
             <Button android:id="@+id/menuBtn"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="EXIT"
+                android:text="SALIR"
                 android:fontFamily="@font/orbitron_medium"
                 android:layout_marginTop="40dp"
                 android:onClick="quitGame"/>
