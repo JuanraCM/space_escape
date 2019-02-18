@@ -2,12 +2,12 @@ package com.example.juanra.gameproyect;
 
 import android.widget.ImageView;
 
-public class WallObject extends GameObject {
+public class WallLaser extends SpaceshipObject {
 
-    public WallObject() {
+    public WallLaser() {
     }
 
-    public WallObject(ImageView image) {
+    public WallLaser(ImageView image) {
         super(image, 3000f, image.getY());
     }
 }
