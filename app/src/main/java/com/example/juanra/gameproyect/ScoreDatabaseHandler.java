@@ -12,7 +12,7 @@ import java.util.List;
 public class ScoreDatabaseHandler extends SQLiteOpenHelper {
 
     private static final int DATABASE_VERSION = 1;
-    private static final String DATABASE_NAME = "ScorePlayerDB";
+    private static final String DATABASE_NAME = "ScorePlayerDB.db";
     private static final String TABLE_NAME = "ScorePlayers";
     private static final String KEY_ID = "id";
     private static final String KEY_ALIAS = "alias";
@@ -28,6 +28,8 @@ public class ScoreDatabaseHandler extends SQLiteOpenHelper {
         String createTable = "CREATE TABLE " + TABLE_NAME + "( "
             + "id INTEGER PRIMARY KEY AUTOINCREMENT, " + "alias TEXT, "
             + "score TEXT )";
+
+        db.execSQL(createTable);
     }
 
     @Override
@@ -72,7 +74,7 @@ public class ScoreDatabaseHandler extends SQLiteOpenHelper {
 
         if (cursor != null) cursor.moveToFirst();
 
-        String[] result = new String[] { cursor.getString(1), cursor.getString(2) };
+        String[] result = new String[] { cursor.getString(0), cursor.getString(1) };
 
         return result;
     }
@@ -84,5 +86,22 @@ public class ScoreDatabaseHandler extends SQLiteOpenHelper {
         values.put(KEY_SCORE, score);
 
         db.insert(TABLE_NAME, null, values);
+        db.close();
+    }
+
+    public int updatePlayer(String[] player) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(KEY_ALIAS, player[0]);
+        values.put(KEY_SCORE, player[1]);
+
+        int i = db.update(TABLE_NAME,
+                values,
+                "alias = ?",
+                 new String[] { player[0] });
+
+        db.close();
+
+        return i;
     }
 }

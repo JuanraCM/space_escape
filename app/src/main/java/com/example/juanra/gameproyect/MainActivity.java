@@ -1,6 +1,7 @@
 package com.example.juanra.gameproyect;
 
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.graphics.drawable.Drawable;
 import android.hardware.Sensor;
@@ -9,14 +10,21 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Build;
 import android.os.Handler;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.InputType;
+import android.util.Log;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -37,6 +45,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private ScoreBoard scoreBoard;
     private ImageView currentShipImage;
     private TextView livesCounter;
+    private TextView playerLabel;
 
     // Diferentes naves
     private Spaceship[] spaceships;
@@ -77,6 +86,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     // Variable para reproducir sonidos
     private SoundPlayer soundPlayer;
 
+    // Variable para controlar el sistema de scoreboard
+    private ScoreDatabaseHandler scoreDB;
+    private String currentPlayer;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -85,6 +98,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         gameFrame = findViewById(R.id.gameFrame);
         gameLayout = findViewById(R.id.gameLayout);
         livesCounter = findViewById(R.id.livesCounter);
+        playerLabel = findViewById(R.id.currentPlayer);
 
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
 
@@ -95,11 +109,22 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         TextView hiScoreLabel = findViewById(R.id.highScoreLabel);
         scoreBoard = new ScoreBoard(score, hiScoreLabel);
 
+        // Inicializa la base de datos
+        scoreDB = new ScoreDatabaseHandler(this);
+
         // Carga el score mas alto guardado en el dispositivo
         settings = getSharedPreferences("GAME_DATA", Context.MODE_PRIVATE);
-        scoreBoard.setHighScore(settings.getInt("HIGH_SCORE", 0));
+        currentPlayer = settings.getString("CURRENT_PLAYER", null);
+        if (currentPlayer != null) {
+            scoreBoard.setHighScore(Integer.parseInt(scoreDB.getPlayerInfo(currentPlayer)[1]));
+            setPlayerLabel();
+        } else scoreBoard.setHighScore(0);
 
         soundPlayer = new SoundPlayer(this);
+    }
+
+    private void setPlayerLabel() {
+        playerLabel.setText("HOLA, " + currentPlayer.toUpperCase());
     }
 
     private void registerListener() {
@@ -336,6 +361,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         hasStarted = false;
 
+        if (currentPlayer == null) {
+            openPlayerDialog();
+        }
+
         // Cambia la visibilidad de los elementos
         player.setImageVisibility(View.INVISIBLE);
         currentShip.setImageVisibility(View.INVISIBLE);
@@ -349,10 +378,30 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         // Cambiamos el valor de High Score
         if (scoreBoard.getCurrentScore() > scoreBoard.getHighScore()) {
             scoreBoard.setHighScore(scoreBoard.getCurrentScore());
-            SharedPreferences.Editor editor = settings.edit();
-            editor.putInt("HIGH_SCORE", scoreBoard.getHighScore());
-            editor.apply();
         }
+    }
+
+    private void openPlayerDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Introduce tu nombre");
+
+        final EditText input = new EditText(this);
+
+        input.setInputType(InputType.TYPE_CLASS_TEXT);
+        builder.setView(input);
+
+        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                currentPlayer = input.getText().toString();
+                setPlayerLabel();
+                SharedPreferences.Editor editor = settings.edit();
+                editor.putString("CURRENT_PLAYER", currentPlayer);
+                editor.apply();
+            }
+        });
+
+        builder.show();
     }
 
     private void updatePlayerPos() {

@@ -24,7 +24,14 @@
         android:layout_height="wrap_content"
         android:textColor="@android:color/white"
         android:fontFamily="@font/orbitron_regular"
-        android:visibility="invisible"/>
+        android:visibility="gone"/>
+
+    <TextView android:id="@+id/currentPlayer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="@android:color/white"
+        android:fontFamily="@font/orbitron_regular"
+        android:text="Hola, Juanra"/>
 
     <FrameLayout android:id="@+id/gameFrame"
         android:layout_width="350dp"
@@ -96,15 +103,22 @@
                 android:layout_height="wrap_content"
                 android:text="EMPEZAR PARTIDA"
                 android:fontFamily="@font/orbitron_medium"
-                android:layout_marginTop="60dp"
+                android:layout_marginTop="30dp"
                 android:onClick="startGame"/>
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="CAMBIAR NOMBRE"
+                android:layout_marginTop="20dp"
+                android:fontFamily="@font/orbitron_medium"/>
 
             <Button android:id="@+id/menuBtn"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="SALIR"
                 android:fontFamily="@font/orbitron_medium"
-                android:layout_marginTop="40dp"
+                android:layout_marginTop="20dp"
                 android:onClick="quitGame"/>
 
         </LinearLayout>
