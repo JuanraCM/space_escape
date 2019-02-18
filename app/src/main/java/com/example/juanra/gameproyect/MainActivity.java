@@ -211,8 +211,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             playerY = player.getObjectY();
 
             // Obtenemos la posicion de los demas objetos
-            shipX = spaceships[0].getObjectX();
-            shipY = spaceships[0].getObjectY();
+            shipX = currentShip.getObjectX();
+            shipY = currentShip.getObjectY();
             laserX = laserWall.getObjectX();
         }
     }
@@ -339,6 +339,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         // Cambia la visibilidad de los elementos
         player.setImageVisibility(View.INVISIBLE);
         currentShip.setImageVisibility(View.INVISIBLE);
+        shipY = 3000f;
         laserWall.setImageVisibility(View.INVISIBLE);
         laserX = -3000f;
         gameLayout.setVisibility(View.VISIBLE);
