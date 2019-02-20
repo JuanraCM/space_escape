@@ -29,6 +29,8 @@ import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.Timer;
@@ -134,23 +136,30 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         // Inicializa la base de datos
         scoreDB = new ScoreDatabaseHandler(this);
+        //scoreDB.deleteAll();  Borra todos los registros
 
         // Carga el score mas alto guardado en el dispositivo
         settings = getSharedPreferences("GAME_DATA", Context.MODE_PRIVATE);
         currentPlayer = settings.getString("CURRENT_PLAYER", null);
 
-        if (currentPlayer != null) {
-            scoreBoard.setHighScore(Integer.parseInt(scoreDB.getPlayerInfo(currentPlayer)[1]));
-            setPlayerLabel();
-        } else scoreBoard.setHighScore(0);
+        if (currentPlayer != null)
+            scoreBoard.setHighScore(scoreDB.getPlayerInfo(currentPlayer).getHiscore());
+        else {
+            openCustomDialog();
+            scoreBoard.setHighScore(0);
+        }
+
+
+        setPlayerLabel();
 
         soundPlayer = new SoundPlayer(this);
     }
 
     private void setPlayerLabel() {
-        if (currentPlayer != null)
+        if (currentPlayer != null) {
             playerLabel.setText("HOLA, " + currentPlayer.toUpperCase());
-        else playerLabel.setVisibility(View.GONE);
+            playerLabel.setVisibility(View.VISIBLE);
+        } else playerLabel.setVisibility(View.GONE);
     }
 
     private void registerListener() {
@@ -408,7 +417,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         // Cambiamos el valor de High Score
         if (scoreBoard.getCurrentScore() > scoreBoard.getHighScore()) {
             scoreBoard.setHighScore(scoreBoard.getCurrentScore());
-            scoreDB.updatePlayer(new String[]{currentPlayer, Integer.toString(scoreBoard.getHighScore())});
+            scoreDB.updatePlayer(new PlayerInfo(currentPlayer, scoreBoard.getHighScore()));
         }
     }
 
@@ -446,7 +455,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         recPlayers = dialog.findViewById(R.id.rclPlayers);
         recPlayers.setHasFixedSize(true);
-        List<String[]> data = scoreDB.allPlayers();
+
+        List<PlayerInfo> data = scoreDB.allPlayers();
+        Collections.sort(data);
 
         adapter = new AdapterRecycler(data);
         recPlayers.setAdapter(adapter);
@@ -460,8 +471,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     private void setPlayerHiScore() {
-        String[] info = scoreDB.getPlayerInfo(currentPlayer);
-        scoreBoard.setHighScore(Integer.parseInt(info[1]));
+        PlayerInfo player = scoreDB.getPlayerInfo(currentPlayer);
+        scoreBoard.setHighScore(player.getHiscore());
     }
 
     private void updatePlayerPos() {

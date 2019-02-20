@@ -27,7 +27,7 @@ public class ScoreDatabaseHandler extends SQLiteOpenHelper {
     public void onCreate(SQLiteDatabase db) {
         String createTable = "CREATE TABLE " + TABLE_NAME + "( "
             + "id INTEGER PRIMARY KEY AUTOINCREMENT, " + "alias TEXT, "
-            + "score TEXT )";
+            + "score INTEGER )";
 
         db.execSQL(createTable);
     }
@@ -38,19 +38,24 @@ public class ScoreDatabaseHandler extends SQLiteOpenHelper {
         this.onCreate(db);
     }
 
-    public List<String[]> allPlayers() {
-        List<String[]> players = new ArrayList<>();
-        String query = "SELECT * FROM " + TABLE_NAME;
+    public void deleteAll() {
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.execSQL("delete from "+ TABLE_NAME);
+    }
+
+    public List<PlayerInfo> allPlayers() {
+        List<PlayerInfo> players = new ArrayList<>();
+        String query = "SELECT * FROM " + TABLE_NAME + " ORDER BY " + KEY_SCORE + " DESC";
         SQLiteDatabase db = this.getWritableDatabase();
         Cursor cursor = db.rawQuery(query, null);
-        String[] player = null;
+        PlayerInfo player;
 
         if (cursor.moveToFirst()) {
             do {
 
-                player = new String[2];
-                player[0] = cursor.getString(1);
-                player[1] = cursor.getString(2);
+                player = new PlayerInfo();
+                player.setAlias(cursor.getString(1));
+                player.setHiscore(Integer.parseInt(cursor.getString(2)));
 
                 players.add(player);
 
@@ -60,14 +65,14 @@ public class ScoreDatabaseHandler extends SQLiteOpenHelper {
     }
 
     public boolean exists(String alias) {
-        List<String[]> players = allPlayers();
-        for (String[] player : players)
-            if (player[0].equals(alias))
+        List<PlayerInfo> players = allPlayers();
+        for (PlayerInfo player : players)
+            if (player.getAlias().equals(alias))
                 return true;
         return false;
     }
 
-    public String[] getPlayerInfo(String alias) {
+    public PlayerInfo getPlayerInfo(String alias) {
         SQLiteDatabase db = this.getReadableDatabase();
         Cursor cursor = db.query(
                 TABLE_NAME,
@@ -82,7 +87,7 @@ public class ScoreDatabaseHandler extends SQLiteOpenHelper {
 
         if (cursor != null) cursor.moveToFirst();
 
-        String[] result = new String[] { cursor.getString(0), cursor.getString(1) };
+        PlayerInfo result = new PlayerInfo(cursor.getString(0), Integer.parseInt(cursor.getString(1)));
 
         return result;
     }
@@ -97,16 +102,16 @@ public class ScoreDatabaseHandler extends SQLiteOpenHelper {
         db.close();
     }
 
-    public int updatePlayer(String[] player) {
+    public int updatePlayer(PlayerInfo player) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
-        values.put(KEY_ALIAS, player[0]);
-        values.put(KEY_SCORE, player[1]);
+        values.put(KEY_ALIAS, player.getAlias());
+        values.put(KEY_SCORE, player.getHiscore());
 
         int i = db.update(TABLE_NAME,
                 values,
                 "alias = ?",
-                 new String[] { player[0] });
+                 new String[] { player.getAlias() });
 
         db.close();
 

@@ -2,7 +2,7 @@
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="300dp"
-    android:layout_height="match_parent"
+    android:layout_height="300dp"
     android:orientation="vertical"
     android:background="@android:color/black">
 
@@ -13,12 +13,13 @@
         android:text="MEJORES JUGADORES"
         android:fontFamily="@font/orbitron_medium"
         android:textColor="@android:color/white"
-        android:padding="10dp"/>
+        android:padding="10dp"
+        android:background="@drawable/borderhiscore"/>
 
     <android.support.v7.widget.RecyclerView
         android:id="@+id/rclPlayers"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:scrollbars="vertical"/>
+        android:scrollbars="vertical" />
 
 </LinearLayout>

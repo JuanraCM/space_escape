@@ -14,9 +14,9 @@ import java.util.List;
 public class AdapterRecycler
         extends RecyclerView.Adapter<AdapterRecycler.RecyclerViewHolder> {
 
-    private List<String[]> datos;
+    private List<PlayerInfo> datos;
 
-    public AdapterRecycler(List<String[]> datos) {
+    public AdapterRecycler(List<PlayerInfo> datos) {
         this.datos = datos;
     }
 
@@ -33,8 +33,8 @@ public class AdapterRecycler
 
     @Override
     public void onBindViewHolder(RecyclerViewHolder viewHolder, int pos) {
-        final String[] item = datos.get(pos);
-        viewHolder.bindFood(item);
+        final PlayerInfo item = datos.get(pos);
+        viewHolder.bindPlayer(item);
     }
 
     @Override
@@ -53,9 +53,9 @@ public class AdapterRecycler
             lblScore = v.findViewById(R.id.scoreTable);
         }
 
-        public void bindFood(String[] p) {
-            lblPlayer.setText(p[0]);
-            lblScore.setText(p[1]);
+        public void bindPlayer(PlayerInfo p) {
+            lblPlayer.setText(p.getAlias());
+            lblScore.setText(p.getHiscore() + "");
         }
     }
 }

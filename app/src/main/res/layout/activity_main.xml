@@ -30,8 +30,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textColor="@android:color/white"
-        android:fontFamily="@font/orbitron_regular"
-        android:text="Hola, Juanra"/>
+        android:fontFamily="@font/orbitron_regular" />
 
     <FrameLayout android:id="@+id/gameFrame"
         android:layout_width="350dp"
@@ -109,10 +108,9 @@
             <Button android:id="@+id/changeNameBtn"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="CAMBIAR NOMBRE"
+                android:text="CAMBIAR PERFIL"
                 android:layout_marginTop="20dp"
-                android:fontFamily="@font/orbitron_medium"
-                android:onClick="openPlayerDialog"/>
+                android:fontFamily="@font/orbitron_medium" />
 
             <Button android:id="@+id/menuBtn"
                 android:layout_width="wrap_content"
