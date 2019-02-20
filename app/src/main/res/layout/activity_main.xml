@@ -10,7 +10,7 @@
     <TextView android:id="@+id/scoreboard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Score: 0"
+        android:text="SCOREBOARD"
         android:fontFamily="@font/orbitron_regular"
         android:background="@android:color/darker_gray"
         android:textAlignment="center"
@@ -106,12 +106,13 @@
                 android:layout_marginTop="30dp"
                 android:onClick="startGame"/>
 
-            <Button
+            <Button android:id="@+id/changeNameBtn"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="CAMBIAR NOMBRE"
                 android:layout_marginTop="20dp"
-                android:fontFamily="@font/orbitron_medium"/>
+                android:fontFamily="@font/orbitron_medium"
+                android:onClick="openPlayerDialog"/>
 
             <Button android:id="@+id/menuBtn"
                 android:layout_width="wrap_content"

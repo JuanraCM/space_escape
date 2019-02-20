@@ -59,6 +59,14 @@ public class ScoreDatabaseHandler extends SQLiteOpenHelper {
         return players;
     }
 
+    public boolean exists(String alias) {
+        List<String[]> players = allPlayers();
+        for (String[] player : players)
+            if (player[0].equals(alias))
+                return true;
+        return false;
+    }
+
     public String[] getPlayerInfo(String alias) {
         SQLiteDatabase db = this.getReadableDatabase();
         Cursor cursor = db.query(
