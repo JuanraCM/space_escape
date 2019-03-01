@@ -1,6 +1,8 @@
 package com.example.juanra.gameproyect;
 
+import android.app.Dialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.graphics.drawable.Drawable;
 import android.hardware.Sensor;
@@ -9,14 +11,27 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Build;
 import android.os.Handler;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.text.InputType;
+import android.util.Log;
 import android.view.View;
+import android.view.Window;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -27,6 +42,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private FrameLayout gameFrame;
     private int frameHeight, frameWidth, initialframeWidth, minFrameWidth;
     private LinearLayout gameLayout;
+    private Button changeNameBtn;
 
     // Elementos del juego
     private Player player;
@@ -37,6 +53,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private ScoreBoard scoreBoard;
     private ImageView currentShipImage;
     private TextView livesCounter;
+    private TextView playerLabel;
 
     // Diferentes naves
     private Spaceship[] spaceships;
@@ -77,6 +94,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     // Variable para reproducir sonidos
     private SoundPlayer soundPlayer;
 
+    // Variable para controlar el sistema de scoreboard
+    private ScoreDatabaseHandler scoreDB;
+    private String currentPlayer;
+    private RecyclerView recPlayers;
+    private AdapterRecycler adapter;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -85,6 +108,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         gameFrame = findViewById(R.id.gameFrame);
         gameLayout = findViewById(R.id.gameLayout);
         livesCounter = findViewById(R.id.livesCounter);
+        playerLabel = findViewById(R.id.currentPlayer);
+        changeNameBtn = findViewById(R.id.changeNameBtn);
+
+        changeNameBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                openCustomDialog();
+            }
+        });
 
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
 
@@ -92,14 +124,42 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         // Inicializa el scoreboard
         TextView score = findViewById(R.id.scoreboard);
+        score.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (!hasStarted) openCustomScoreBoard();
+            }
+        });
+
         TextView hiScoreLabel = findViewById(R.id.highScoreLabel);
         scoreBoard = new ScoreBoard(score, hiScoreLabel);
 
+        // Inicializa la base de datos
+        scoreDB = new ScoreDatabaseHandler(this);
+        //scoreDB.deleteAll();  Borra todos los registros
+
         // Carga el score mas alto guardado en el dispositivo
         settings = getSharedPreferences("GAME_DATA", Context.MODE_PRIVATE);
-        scoreBoard.setHighScore(settings.getInt("HIGH_SCORE", 0));
+        currentPlayer = settings.getString("CURRENT_PLAYER", null);
+
+        if (currentPlayer != null)
+            scoreBoard.setHighScore(scoreDB.getPlayerInfo(currentPlayer).getHiscore());
+        else {
+            openCustomDialog();
+            scoreBoard.setHighScore(0);
+        }
+
+
+        setPlayerLabel();
 
         soundPlayer = new SoundPlayer(this);
+    }
+
+    private void setPlayerLabel() {
+        if (currentPlayer != null) {
+            playerLabel.setText("HOLA, " + currentPlayer.toUpperCase());
+            playerLabel.setVisibility(View.VISIBLE);
+        } else playerLabel.setVisibility(View.GONE);
     }
 
     private void registerListener() {
@@ -117,6 +177,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         gameLayout.setVisibility(View.INVISIBLE);
         player.setImageVisibility(View.VISIBLE);
         currentShip.setImageVisibility(View.VISIBLE);
+        playerLabel.setVisibility(View.GONE);
 
         timer.schedule(new TimerTask() {
             @Override
@@ -336,23 +397,82 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         hasStarted = false;
 
+        if (currentPlayer == null) {
+            openCustomDialog();
+        }
+
         // Cambia la visibilidad de los elementos
         player.setImageVisibility(View.INVISIBLE);
         currentShip.setImageVisibility(View.INVISIBLE);
         shipY = 3000f;
+        warningArrow.setVisibility(View.INVISIBLE);
         laserWall.setImageVisibility(View.INVISIBLE);
         laserX = -3000f;
         gameLayout.setVisibility(View.VISIBLE);
         playerShot.setImageVisibility(View.INVISIBLE);
-        livesCounter.setVisibility(View.INVISIBLE);
+        livesCounter.setVisibility(View.GONE);
+        playerLabel.setVisibility(View.VISIBLE);
+        scoreBoard.setDefaultTitle();
 
         // Cambiamos el valor de High Score
         if (scoreBoard.getCurrentScore() > scoreBoard.getHighScore()) {
             scoreBoard.setHighScore(scoreBoard.getCurrentScore());
-            SharedPreferences.Editor editor = settings.edit();
-            editor.putInt("HIGH_SCORE", scoreBoard.getHighScore());
-            editor.apply();
+            scoreDB.updatePlayer(new PlayerInfo(currentPlayer, scoreBoard.getHighScore()));
         }
+    }
+
+    private void openCustomDialog() {
+        final Dialog dialog = new Dialog(this);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setContentView(R.layout.custom_dialog);
+
+        final EditText text = dialog.findViewById(R.id.dialogText);
+        final Button dialogBtn = dialog.findViewById(R.id.dialogBtn);
+
+        dialogBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                currentPlayer = text.getText().toString().trim();
+                if (!scoreDB.exists(currentPlayer)) createPlayer(0);
+
+                setPlayerLabel();
+                setPlayerHiScore();
+
+                SharedPreferences.Editor editor = settings.edit();
+                editor.putString("CURRENT_PLAYER", currentPlayer);
+                editor.apply();
+
+                dialog.dismiss();
+            }
+        });
+        dialog.show();
+    }
+
+    private void openCustomScoreBoard() {
+        final Dialog dialog = new Dialog(this);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setContentView(R.layout.scoreboard_dialog);
+
+        recPlayers = dialog.findViewById(R.id.rclPlayers);
+        recPlayers.setHasFixedSize(true);
+
+        List<PlayerInfo> data = scoreDB.allPlayers();
+        Collections.sort(data);
+
+        adapter = new AdapterRecycler(data);
+        recPlayers.setAdapter(adapter);
+        recPlayers.setLayoutManager(new LinearLayoutManager(
+                this, LinearLayoutManager.VERTICAL, false));
+        dialog.show();
+    }
+
+    private void createPlayer(int score) {
+        scoreDB.addPlayer(currentPlayer, Integer.toString(score));
+    }
+
+    private void setPlayerHiScore() {
+        PlayerInfo player = scoreDB.getPlayerInfo(currentPlayer);
+        scoreBoard.setHighScore(player.getHiscore());
     }
 
     private void updatePlayerPos() {

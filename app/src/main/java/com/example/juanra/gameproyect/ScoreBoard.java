@@ -1,5 +1,7 @@
 package com.example.juanra.gameproyect;
 
+import android.util.Log;
+import android.view.View;
 import android.widget.TextView;
 
 public class ScoreBoard {
@@ -12,7 +14,7 @@ public class ScoreBoard {
         this.highScoreLabel = highScoreLabel;
 
         currentScore = 0;
-        scoreBoard.setText("Score: " + currentScore);
+        setDefaultTitle();
     }
 
     public void increment(int i) {
@@ -48,5 +50,9 @@ public class ScoreBoard {
 
     public int getHighScore() {
         return highScore;
+    }
+
+    public void setDefaultTitle() {
+        scoreBoard.setText("SCOREBOARD");
     }
 }
